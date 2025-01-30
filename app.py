@@ -1,92 +1,117 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, redirect, url_for, request, flash, session
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import DataRequired, Email, EqualTo, Optional
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'supersecretkey'
-
+app.config['SECRET_KEY'] = 'supersecretkey'
 db = SQLAlchemy(app)
 
-# Modello del database
-class Utente(db.Model):
+class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False)
-    cognome = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(255), nullable=True)  # Permette valori NULL
-    piano = db.Column(db.String(50), nullable=False)
-    stato = db.Column(db.String(20), nullable=False)
+    username = db.Column(db.String(150), nullable=False, unique=True)
+    email = db.Column(db.String(150), unique=True, nullable=True)
+    password = db.Column(db.String(256), nullable=False)
 
-# Rotte dell'app
-@app.route('/')
-def index():
-    utenti = Utente.query.all()
-    return render_template('index.html', utenti=utenti)
+class RegisterForm(FlaskForm):
+    username = StringField('Nome utente', validators=[DataRequired()])
+    email = StringField('Email', validators=[Optional(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    confirm_password = PasswordField('Conferma Password', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Registrati')
 
-@app.route('/add', methods=['GET', 'POST'])
-def add_utente():
-    if request.method == 'POST':
-        nome = request.form['nome']
-        cognome = request.form['cognome']
-        email = request.form['email'].strip() or None  # Salva None se il campo è vuoto
-        piano = request.form['piano']
-        stato = request.form['stato']
+class LoginForm(FlaskForm):
+    username = StringField('Nome utente', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Accedi')
 
-        nuovo_utente = Utente(nome=nome, cognome=cognome, email=email, piano=piano, stato=stato)
-        
-        db.session.add(nuovo_utente)
-        try:
-            db.session.commit()
-            flash("Utente aggiunto con successo.")
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Errore: {e}")
+class EditProfileForm(FlaskForm):
+    username = StringField('Nome utente', validators=[DataRequired()])
+    email = StringField('Email', validators=[Optional(), Email()])
+    password = PasswordField('Nuova Password', validators=[Optional()])
+    confirm_password = PasswordField('Conferma Password', validators=[EqualTo('password')])
+    submit = SubmitField('Aggiorna')
 
-        return redirect(url_for('index'))
+@app.before_first_request
+def create_admin():
+    db.create_all()
+    if not User.query.first():
+        return redirect(url_for('register_first_user'))
 
-    return render_template('add.html')
-
-@app.route('/edit/<int:id>', methods=['GET', 'POST'])
-def edit_utente(id):
-    utente = Utente.query.get(id)
-
-    if not utente:
-        flash("Utente non trovato.")
-        return redirect(url_for('index'))
-
-    if request.method == 'POST':
-        utente.nome = request.form['nome']
-        utente.cognome = request.form['cognome']
-        utente.email = request.form['email'].strip() or None  # Salva None se vuoto
-        utente.piano = request.form['piano']
-        utente.stato = request.form['stato']
-
-        try:
-            db.session.commit()
-            flash("Utente aggiornato con successo.")
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Errore: {e}")
-
-        return redirect(url_for('index'))
-
-    return render_template('edit.html', utente=utente)
-
-@app.route('/delete/<int:id>')
-def delete_utente(id):
-    utente = Utente.query.get(id)
+@app.route('/register_first_user', methods=['GET', 'POST'])
+def register_first_user():
+    if User.query.first():
+        return redirect(url_for('login'))
     
-    if utente:
-        db.session.delete(utente)
-        try:
-            db.session.commit()
-            flash("Utente eliminato con successo.")
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Errore: {e}")
+    form = RegisterForm()
+    if form.validate_on_submit():
+        hashed_pw = generate_password_hash(form.password.data, method='pbkdf2:sha256')
+        new_user = User(username=form.username.data, email=form.email.data, password=hashed_pw)
+        db.session.add(new_user)
+        db.session.commit()
+        flash('Account creato con successo! Ora puoi accedere.', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html', form=form)
 
-    return redirect(url_for('index'))
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    form = RegisterForm()
+    if form.validate_on_submit():
+        hashed_pw = generate_password_hash(form.password.data, method='pbkdf2:sha256')
+        new_user = User(username=form.username.data, email=form.email.data, password=hashed_pw)
+        db.session.add(new_user)
+        db.session.commit()
+        flash('Nuovo utente creato!', 'success')
+        return redirect(url_for('dashboard'))
+    return render_template('register.html', form=form)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user and check_password_hash(user.password, form.password.data):
+            session['user_id'] = user.id
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Credenziali errate', 'danger')
+    return render_template('login.html', form=form)
+
+@app.route('/dashboard')
+def dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('dashboard.html')
+
+@app.route('/edit_profile', methods=['GET', 'POST'])
+def edit_profile():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    form = EditProfileForm(obj=user)
+
+    if form.validate_on_submit():
+        user.username = form.username.data
+        user.email = form.email.data
+        if form.password.data:
+            user.password = generate_password_hash(form.password.data, method='pbkdf2:sha256')
+        db.session.commit()
+        flash('Profilo aggiornato con successo!', 'success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('edit_profile.html', form=form)
+
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    db.create_all()  # Crea il database se non esiste
     app.run(debug=True)
