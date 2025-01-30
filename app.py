@@ -35,11 +35,10 @@ class EditProfileForm(FlaskForm):
     confirm_password = PasswordField('Conferma Password', validators=[EqualTo('password')])
     submit = SubmitField('Aggiorna')
 
-@app.before_first_request
-def create_admin():
+with app.app_context():
     db.create_all()
     if not User.query.first():
-        return redirect(url_for('register_first_user'))
+        print("Nessun utente trovato, avvia la registrazione del primo utente.")
 
 @app.route('/register_first_user', methods=['GET', 'POST'])
 def register_first_user():
