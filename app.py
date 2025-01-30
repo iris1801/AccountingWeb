@@ -1,39 +1,25 @@
-from flask import Flask, render_template, redirect, url_for, request, flash, session
+from flask import Flask, render_template, redirect, url_for, request, session
 from flask_sqlalchemy import SQLAlchemy
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import DataRequired, Email, EqualTo, Optional
-from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['SECRET_KEY'] = 'supersecretkey'
+app.config['SECRET_KEY'] = 'chiave_segreta'
 db = SQLAlchemy(app)
 
+# Modello per utenti dell'app (admin)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), nullable=False, unique=True)
-    email = db.Column(db.String(150), unique=True, nullable=True)
-    password = db.Column(db.String(256), nullable=False)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password = db.Column(db.String(50), nullable=False)
 
-class RegisterForm(FlaskForm):
-    username = StringField('Nome utente', validators=[DataRequired()])
-    email = StringField('Email', validators=[Optional(), Email()])
-    password = PasswordField('Password', validators=[DataRequired()])
-    confirm_password = PasswordField('Conferma Password', validators=[DataRequired(), EqualTo('password')])
-    submit = SubmitField('Registrati')
-
-class LoginForm(FlaskForm):
-    username = StringField('Nome utente', validators=[DataRequired()])
-    password = PasswordField('Password', validators=[DataRequired()])
-    submit = SubmitField('Accedi')
-
-class EditProfileForm(FlaskForm):
-    username = StringField('Nome utente', validators=[DataRequired()])
-    email = StringField('Email', validators=[Optional(), Email()])
-    password = PasswordField('Nuova Password', validators=[Optional()])
-    confirm_password = PasswordField('Conferma Password', validators=[EqualTo('password')])
-    submit = SubmitField('Aggiorna')
+# Modello per utenti del servizio Streamland
+class Utente(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    cognome = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=True)
+    piano = db.Column(db.String(50), nullable=False)  # Dropdown
+    stato = db.Column(db.String(50), nullable=False)  # Dropdown
 
 with app.app_context():
     db.create_all()
@@ -47,79 +33,108 @@ with app.app_context():
 def home():
     if first_user_mode:
         return redirect(url_for("register_first_user"))
+    return redirect(url_for("index"))
+
+# ** Registrazione del primo utente **
+@app.route("/register_first_user", methods=["GET", "POST"])
+def register_first_user():
+    global first_user_mode
+    if not first_user_mode:
+        return redirect(url_for("login"))
+    
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        new_user = User(username=username, password=password)
+        db.session.add(new_user)
+        db.session.commit()
+        first_user_mode = False
+        return redirect(url_for("index"))
+
+    return render_template("register_first_user.html")
+
+# ** Login degli amministratori **
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        user = User.query.filter_by(username=username, password=password).first()
+        if user:
+            session["user"] = user.username
+            return redirect(url_for("index"))
+    return render_template("login.html")
+
+# ** Logout **
+@app.route("/logout")
+def logout():
+    session.pop("user", None)
     return redirect(url_for("login"))
 
-@app.route('/register_first_user', methods=['GET', 'POST'])
-def register_first_user():
-    if User.query.first():
-        return redirect(url_for('login'))
-    
-    form = RegisterForm()
-    if form.validate_on_submit():
-        hashed_pw = generate_password_hash(form.password.data, method='pbkdf2:sha256')
-        new_user = User(username=form.username.data, email=form.email.data, password=hashed_pw)
-        db.session.add(new_user)
+# ** Controllo autenticazione **
+def is_logged_in():
+    return "user" in session
+
+# ** Visualizzazione utenti del servizio Streamland **
+@app.route("/index")
+def index():
+    if not is_logged_in():
+        return redirect(url_for("login"))
+
+    utenti = Utente.query.all()
+    return render_template("index.html", utenti=utenti)
+
+# ** Aggiunta nuovo utente al servizio Streamland **
+@app.route("/add_utente", methods=["GET", "POST"])
+def add_utente():
+    if not is_logged_in():
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        nome = request.form["nome"]
+        cognome = request.form["cognome"]
+        email = request.form["email"]
+        piano = request.form["piano"]
+        stato = request.form["stato"]
+
+        nuovo_utente = Utente(nome=nome, cognome=cognome, email=email, piano=piano, stato=stato)
+        db.session.add(nuovo_utente)
         db.session.commit()
-        flash('Account creato con successo! Ora puoi accedere.', 'success')
-        return redirect(url_for('login'))
-    return render_template('register.html', form=form)
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+        return redirect(url_for("index"))
 
-    form = RegisterForm()
-    if form.validate_on_submit():
-        hashed_pw = generate_password_hash(form.password.data, method='pbkdf2:sha256')
-        new_user = User(username=form.username.data, email=form.email.data, password=hashed_pw)
-        db.session.add(new_user)
+    return render_template("add_utente.html")
+
+# ** Modifica utente **
+@app.route("/edit_utente/<int:id>", methods=["GET", "POST"])
+def edit_utente(id):
+    if not is_logged_in():
+        return redirect(url_for("login"))
+
+    utente = Utente.query.get_or_404(id)
+
+    if request.method == "POST":
+        utente.nome = request.form["nome"]
+        utente.cognome = request.form["cognome"]
+        utente.email = request.form["email"]
+        utente.piano = request.form["piano"]
+        utente.stato = request.form["stato"]
+
         db.session.commit()
-        flash('Nuovo utente creato!', 'success')
-        return redirect(url_for('dashboard'))
-    return render_template('register.html', form=form)
+        return redirect(url_for("index"))
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
-        if user and check_password_hash(user.password, form.password.data):
-            session['user_id'] = user.id
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Credenziali errate', 'danger')
-    return render_template('login.html', form=form)
+    return render_template("edit_utente.html", utente=utente)
 
-@app.route('/dashboard')
-def dashboard():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    return render_template('dashboard.html')
+# ** Eliminazione utente **
+@app.route("/delete_utente/<int:id>")
+def delete_utente(id):
+    if not is_logged_in():
+        return redirect(url_for("login"))
 
-@app.route('/edit_profile', methods=['GET', 'POST'])
-def edit_profile():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+    utente = Utente.query.get_or_404(id)
+    db.session.delete(utente)
+    db.session.commit()
+    return redirect(url_for("index"))
 
-    user = User.query.get(session['user_id'])
-    form = EditProfileForm(obj=user)
-
-    if form.validate_on_submit():
-        user.username = form.username.data
-        user.email = form.email.data
-        if form.password.data:
-            user.password = generate_password_hash(form.password.data, method='pbkdf2:sha256')
-        db.session.commit()
-        flash('Profilo aggiornato con successo!', 'success')
-        return redirect(url_for('dashboard'))
-
-    return render_template('edit_profile.html', form=form)
-
-@app.route('/logout')
-def logout():
-    session.pop('user_id', None)
-    return redirect(url_for('login'))
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
