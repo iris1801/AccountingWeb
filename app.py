@@ -38,7 +38,16 @@ class EditProfileForm(FlaskForm):
 with app.app_context():
     db.create_all()
     if not User.query.first():
-        print("Nessun utente trovato, avvia la registrazione del primo utente.")
+        print("Nessun utente trovato, reindirizzamento alla registrazione.")
+        first_user_mode = True
+    else:
+        first_user_mode = False
+
+@app.route("/")
+def home():
+    if first_user_mode:
+        return redirect(url_for("register_first_user"))
+    return redirect(url_for("login"))
 
 @app.route('/register_first_user', methods=['GET', 'POST'])
 def register_first_user():
