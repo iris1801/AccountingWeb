@@ -1,19 +1,16 @@
 {% extends 'base.html' %}
 
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <title>Registrazione Amministratore</title>
-</head>
-<body>
-    <h1>Registra il primo amministratore</h1>
+{% block title %}Registrazione Primo Utente{% endblock %}
+
+{% block content %}
+    <h2>Crea il primo utente</h2>
     <form method="POST">
-        <label>Username:</label>
-        <input type="text" name="username" required><br>
-        <label>Password:</label>
-        <input type="password" name="password" required><br>
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required>
+        
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+        
         <button type="submit">Registrati</button>
     </form>
-</body>
-</html>
+{% endblock %}
