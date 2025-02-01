@@ -1,5 +1,6 @@
 from flask import Flask, render_template, redirect, url_for, request, session
 from flask_sqlalchemy import SQLAlchemy
+from forms import LoginForm  # Importa il form
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -18,8 +19,8 @@ class Utente(db.Model):
     nome = db.Column(db.String(100), nullable=False)
     cognome = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=True)
-    piano = db.Column(db.String(50), nullable=False)  # Dropdown
-    stato = db.Column(db.String(50), nullable=False)  # Dropdown
+    piano = db.Column(db.String(50), nullable=False)
+    stato = db.Column(db.String(50), nullable=False)
 
 with app.app_context():
     db.create_all()
@@ -41,7 +42,7 @@ def register_first_user():
     global first_user_mode
     if not first_user_mode:
         return redirect(url_for("login"))
-    
+
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
@@ -56,14 +57,15 @@ def register_first_user():
 # ** Login degli amministratori **
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        user = User.query.filter_by(username=username, password=password).first()
+    form = LoginForm()  # Crea l'istanza del form
+
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data, password=form.password.data).first()
         if user:
             session["user"] = user.username
             return redirect(url_for("index"))
-    return render_template("login.html")
+
+    return render_template("login.html", form=form)
 
 # ** Logout **
 @app.route("/logout")
