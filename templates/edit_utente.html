@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modifica Utente</title>
+</head>
+<body>
+    <h1>Modifica Utente</h1>
+    <form method="POST">
+        Nome: <input type="text" name="nome" value="{{ utente.nome }}" required><br>
+        Cognome: <input type="text" name="cognome" value="{{ utente.cognome }}" required><br>
+        Email: <input type="email" name="email" value="{{ utente.email or '' }}"><br>
+
+        Piano:
+        <select name="piano">
+            <option value="1080p" {% if utente.piano == "1080p" %}selected{% endif %}>1080p</option>
+            <option value="1080p+Download" {% if utente.piano == "1080p+Download" %}selected{% endif %}>1080p+Download</option>
+            <option value="4k" {% if utente.piano == "4k" %}selected{% endif %}>4k</option>
+            <option value="4k+Download" {% if utente.piano == "4k+Download" %}selected{% endif %}>4k+Download</option>
+        </select><br>
+
+        Stato:
+        <select name="stato">
+            <option value="Prova" {% if utente.stato == "Prova" %}selected{% endif %}>Prova</option>
+            <option value="Pagato" {% if utente.stato == "Pagato" %}selected{% endif %}>Pagato</option>
+            <option value="Ritardo" {% if utente.stato == "Ritardo" %}selected{% endif %}>Ritardo</option>
+            <option value="Cancellato" {% if utente.stato == "Cancellato" %}selected{% endif %}>Cancellato</option>
+        </select><br>
+
+        <button type="submit">Salva</button>
+    </form>
+</body>
+</html>
