@@ -68,10 +68,17 @@ input[type="submit"]:hover {
     background-color: #e6b800;
 }
 
+/* Contenitore per i pulsanti e la tabella */
+.dashboard-container {
+    display: flex;
+    justify-content: space-between; /* Spinge gli elementi ai lati opposti */
+    margin: 20px;
+}
+
 /* Tabella per la dashboard */
 table {
-    width: 80%;
-    margin: 20px auto;
+    width: 60%;
+    margin-left: 20px;
     border-collapse: collapse;
     background-color: white;
     border-radius: 10px;
