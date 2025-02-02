@@ -4,15 +4,18 @@
 
 {% block content %}
     <h1>Lista Utenti</h1>
-    <a href="{{ url_for('add_utente') }}">Aggiungi Nuovo Utente</a>
+    
+    <a href="{{ url_for('dashboard') }}" class="button yellow">Vai alla Dashboard</a>
+    <a href="{{ url_for('add_utente') }}" class="button yellow">Aggiungi Nuovo Utente</a>
+
     <ul>
         {% for utente in utenti %}
             <li>
                 {{ utente.nome }} {{ utente.cognome }} - 
                 {{ utente.email if utente.email else "Nessuna Email" }} - 
                 Piano: {{ utente.piano }} - Stato: {{ utente.stato }}
-                <a href="{{ url_for('edit_utente', id=utente.id) }}">Modifica</a> |
-                <a href="{{ url_for('delete_utente', id=utente.id) }}" onclick="return confirm('Eliminare questo utente?');">Elimina</a>
+                <a href="{{ url_for('edit_utente', id=utente.id) }}" class="button yellow">Modifica</a>
+                <a href="{{ url_for('delete_utente', id=utente.id) }}" class="button yellow" onclick="return confirm('Eliminare questo utente?');">Elimina</a>
             </li>
         {% endfor %}
     </ul>
