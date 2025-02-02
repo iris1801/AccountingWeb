@@ -75,6 +75,17 @@ input[type="submit"]:hover {
     margin: 20px;
 }
 
+/* Sezione dei pulsanti con sfondo scuro */
+.buttons {
+    background-color: #4e0064; /* Colore di sfondo più scuro */
+    padding: 20px;
+    border-radius: 10px;
+    width: 30%; /* Imposta la larghezza della sezione dei pulsanti */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
 /* Tabella per la dashboard */
 table {
     width: 60%;
