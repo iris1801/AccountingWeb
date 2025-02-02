@@ -3,14 +3,12 @@
 body {
     font-family: 'Quicksand', sans-serif;
     background: linear-gradient(to bottom, #6a0572, #52006a); /* Prugna-Viola */
-    color: white;
-    text-align: center;
+    color: white;                                                  text-align: center;
     padding: 20px;
 }
 
 h2 {
-    font-weight: 600;
-}
+    font-weight: 600;                                          }
 
 form {
     background: rgba(255, 255, 255, 0.1);
@@ -53,4 +51,3 @@ input[type="submit"]:hover {
 
 .button.yellow:hover {
     background-color: #e6b800;
-}
