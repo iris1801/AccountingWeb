@@ -1,19 +1,30 @@
 from flask import Flask, render_template, redirect, url_for, request, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_session import Session                              from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user                        from forms import LoginForm, RegisterForm  # Aggiungi l'import per i form
-                                                               # Configura l'app                                              app = Flask(__name__)
-app.config["SESSION_TYPE"] = "filesystem"                      app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_USE_SIGNER"] = True                        app.config["SESSION_FILE_DIR"] = "./flask_session"  # Cartella per le sessioni
+from flask_session import Session
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from forms import LoginForm, RegisterForm  # Aggiungi l'import per i form
+
+# Configura l'app
+app = Flask(__name__)
+app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_USE_SIGNER"] = True
+app.config["SESSION_FILE_DIR"] = "./flask_session"  # Cartella per le sessioni
 Session(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'app.config['SECRET_KEY'] = 'chiave_segreta'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SECRET_KEY'] = 'chiave_segreta'
 db = SQLAlchemy(app)
                                                                # Configura LoginManager
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = "login"  # Definisce la vista di login                                                             
+login_manager.login_view = "login"  # Definisce la vista di login
+
 # Modello per utenti amministratori (UserMixin permette l'integrazione con Flask-Login)
-class User(UserMixin, db.Model):                                   id = db.Column(db.Integer, primary_key=True)                   username = db.Column(db.String(50), unique=True, nullable=False)                                                              password_hash = db.Column(db.String(255), nullable=False)
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
