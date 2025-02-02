@@ -6,6 +6,9 @@ from flask_session import Session
 
 app = Flask(__name__)
 app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_PERMANENT"] = False  # Evita che la sessione venga distrutta subito
+app.config["SESSION_USE_SIGNER"] = True  # Protegge i cookie della sessione
+app.config["SESSION_FILE_DIR"] = "./flask_session"  # Cartella per le sessioni
 Session(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -73,10 +76,14 @@ def register_first_user():
 def login():
     form = LoginForm()  # Crea l'istanza del form
 
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
-        if user and user.check_password(form.password.data):  # Controlla la password hashata
+    if request.method == "POST":  # Non usare solo validate_on_submit()
+        username = request.form["username"]
+        password = request.form["password"]
+        user = User.query.filter_by(username=username).first()
+
+        if user and user.check_password(password):
             session["user"] = user.username
+            session.permanent = True  # Mantiene la sessione attiva
             print("Login effettuato con successo, session:", session)
             return redirect(url_for("index"))
         else:
@@ -93,7 +100,8 @@ def logout():
 
 # ** Controllo autenticazione **
 def is_logged_in():
-    return "user" in session
+    print("Contenuto sessione in is_logged_in():", session)
+    return session.get("user") is not None
 
 # ** Visualizzazione utenti del servizio Streamland **
 @app.route("/index")
