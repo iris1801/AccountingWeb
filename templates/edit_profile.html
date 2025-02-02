@@ -1,12 +1,8 @@
-
 {% extends 'base.html' %}
 
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <title>Modifica Profilo</title>
-</head>
-<body>
+{% block title %}Modifica Profilo{% endblock %}
+
+{% block content %}
     <h2>Modifica il tuo profilo</h2>
     <form method="POST">
         {{ form.hidden_tag() }}
@@ -16,5 +12,4 @@
         <p>{{ form.confirm_password.label }} {{ form.confirm_password() }}</p>
         <p>{{ form.submit() }}</p>
     </form>
-</body>
-</html>
+{% endblock %}
