@@ -1,36 +1,31 @@
 {% extends 'base.html' %}
 
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modifica Utente</title>
-</head>
-<body>
-    <h1>Modifica Utente</h1>
+{% block title %}Modifica Utente{% endblock %}
+
+{% block content %}
+    <h2>Modifica Utente</h2>
     <form method="POST">
-        Nome: <input type="text" name="nome" value="{{ utente.nome }}" required><br>
-        Cognome: <input type="text" name="cognome" value="{{ utente.cognome }}" required><br>
-        Email: <input type="email" name="email" value="{{ utente.email or '' }}"><br>
+        <label for="nome">Nome:</label>
+        <input type="text" id="nome" name="nome" value="{{ utente.nome }}" required>
 
-        Piano:
-        <select name="piano">
-            <option value="1080p" {% if utente.piano == "1080p" %}selected{% endif %}>1080p</option>
-            <option value="1080p+Download" {% if utente.piano == "1080p+Download" %}selected{% endif %}>1080p+Download</option>
-            <option value="4k" {% if utente.piano == "4k" %}selected{% endif %}>4k</option>
-            <option value="4k+Download" {% if utente.piano == "4k+Download" %}selected{% endif %}>4k+Download</option>
-        </select><br>
+        <label for="cognome">Cognome:</label>
+        <input type="text" id="cognome" name="cognome" value="{{ utente.cognome }}" required>
 
-        Stato:
-        <select name="stato">
-            <option value="Prova" {% if utente.stato == "Prova" %}selected{% endif %}>Prova</option>
-            <option value="Pagato" {% if utente.stato == "Pagato" %}selected{% endif %}>Pagato</option>
-            <option value="Ritardo" {% if utente.stato == "Ritardo" %}selected{% endif %}>Ritardo</option>
-            <option value="Cancellato" {% if utente.stato == "Cancellato" %}selected{% endif %}>Cancellato</option>
-        </select><br>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" value="{{ utente.email }}">
 
-        <button type="submit">Salva</button>
+        <label for="piano">Piano:</label>
+        <select id="piano" name="piano" required>
+            <option value="base" {% if utente.piano == "base" %}selected{% endif %}>Base</option>
+            <option value="premium" {% if utente.piano == "premium" %}selected{% endif %}>Premium</option>
+        </select>
+
+        <label for="stato">Stato:</label>
+        <select id="stato" name="stato" required>
+            <option value="attivo" {% if utente.stato == "attivo" %}selected{% endif %}>Attivo</option>
+            <option value="sospeso" {% if utente.stato == "sospeso" %}selected{% endif %}>Sospeso</option>
+        </select>
+
+        <button type="submit">Salva Modifiche</button>
     </form>
-</body>
-</html>
+{% endblock %}
