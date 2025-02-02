@@ -16,8 +16,8 @@
 
         <label for="piano">Piano:</label>
         <select id="piano" name="piano" required>
-            <option value="base" {% if utente.piano == "base" %}selected{% endif %}>Base</option>
-            <option value="premium" {% if utente.piano == "premium" %}selected{% endif %}>Premium</option>
+            <option value="Full HD" {% if utente.piano == "base" %}selected{% endif %}>Base</option>
+            <option value="4K" {% if utente.piano == "premium" %}selected{% endif %}>Premium</option>
         </select>
 
         <label for="stato">Stato:</label>
