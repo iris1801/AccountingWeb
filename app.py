@@ -2,8 +2,12 @@ from flask import Flask, render_template, redirect, url_for, request, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from forms import LoginForm  # Importa il form
+from flask_session import Session
 
 app = Flask(__name__)
+app.config["SESSION_TYPE"] = "filesystem"
+Session(app)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SECRET_KEY'] = 'chiave_segreta'
 db = SQLAlchemy(app)
@@ -73,8 +77,12 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
         if user and user.check_password(form.password.data):  # Controlla la password hashata
             session["user"] = user.username
+            print("Login effettuato con successo, session:", session)
             return redirect(url_for("index"))
+        else:
+            print("Errore login: utente non trovato o password errata.")
 
+    print("Sessione attuale:", session)
     return render_template("login.html", form=form)
 
 # ** Logout **
