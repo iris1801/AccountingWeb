@@ -35,3 +35,22 @@ input[type="submit"] {
 input[type="submit"]:hover {
     background: #e03572;
 }
+
+/* Stile per i pulsanti gialli */
+.button {
+    display: inline-block;
+    padding: 10px 15px;
+    margin: 5px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.button.yellow {
+    background-color: #ffcc00;
+    color: black;
+}
+
+.button.yellow:hover {
+    background-color: #e6b800;
+}
