@@ -1,5 +1,6 @@
 from flask import Flask, render_template, redirect, url_for, request, session
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 from forms import LoginForm  # Importa il form
 
 app = Flask(__name__)
@@ -11,7 +12,13 @@ db = SQLAlchemy(app)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(50), nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 # Modello per utenti del servizio Streamland
 class Utente(db.Model):
@@ -46,11 +53,14 @@ def register_first_user():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
-        new_user = User(username=username, password=password)
+
+        new_user = User(username=username)
+        new_user.set_password(password)  # Salva la password in modo sicuro
         db.session.add(new_user)
         db.session.commit()
+
         first_user_mode = False
-        return redirect(url_for("index"))
+        return redirect(url_for("login"))
 
     return render_template("register_first_user.html")
 
@@ -60,8 +70,8 @@ def login():
     form = LoginForm()  # Crea l'istanza del form
 
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data, password=form.password.data).first()
-        if user:
+        user = User.query.filter_by(username=form.username.data).first()
+        if user and user.check_password(form.password.data):  # Controlla la password hashata
             session["user"] = user.username
             return redirect(url_for("index"))
 
