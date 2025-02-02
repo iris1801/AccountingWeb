@@ -1,32 +1,19 @@
 from flask import Flask, render_template, redirect, url_for, request, session
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
-from forms import LoginForm  # Importa il form
-from flask_session import Session
+from flask_sqlalchemy import SQLAlchemy                        from werkzeug.security import generate_password_hash, check_password_hash
+from forms import LoginForm  # Importa il form                 from flask_session import Session
 
-app = Flask(__name__)
-app.config["SESSION_TYPE"] = "filesystem"
-app.config["SESSION_PERMANENT"] = False  # Evita che la sessione venga distrutta subito
-app.config["SESSION_USE_SIGNER"] = True  # Protegge i cookie della sessione
-app.config["SESSION_FILE_DIR"] = "./flask_session"  # Cartella per le sessioni
-Session(app)
+app = Flask(__name__)                                          app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_PERMANENT"] = False  # Evita che la sessione venga distrutta subito                                       app.config["SESSION_USE_SIGNER"] = True  # Protegge i cookie della sessione                                                   app.config["SESSION_FILE_DIR"] = "./flask_session"  # Cartella per le sessioni                                                Session(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['SECRET_KEY'] = 'chiave_segreta'
-db = SQLAlchemy(app)
+app.config['SECRET_KEY'] = 'chiave_segreta'                    db = SQLAlchemy(app)
 
 # Modello per utenti dell'app (admin)
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
-
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
+class User(db.Model):                                              id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)                                                              password_hash = db.Column(db.String(255), nullable=False)  
+    def set_password(self, password):                                  self.password_hash = generate_password_hash(password)
+                                                                   def check_password(self, password):
+        return check_password_hash(self.password_hash, password)                                                              
 # Modello per utenti del servizio Streamland
 class Utente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -102,6 +89,41 @@ def logout():
 def is_logged_in():
     print("Contenuto sessione in is_logged_in():", session)
     return session.get("user") is not None
+
+
+# Altra route per dashboard
+@app.route("/edit_profile", methods=["GET", "POST"])
+def edit_profile():
+    if not is_logged_in():
+        return redirect(url_for("login"))
+
+    user = User.query.filter_by(username=session.get("user")).first()
+    if not user:
+        return redirect(url_for("dashboard"))
+
+    if request.method == "POST":
+        new_username = request.form["username"]
+        new_password = request.form["password"]
+
+        user.username = new_username
+        if new_password:  # Se è stata inserita una nuova password, aggiornarla
+            user.set_password(new_password)
+
+        db.session.commit()
+        return redirect(url_for("dashboard"))
+
+    return render_template("edit_profile.html", user=user)
+
+
+# Route per dashboard #
+@app.route("/dashboard")
+def dashboard():
+    if not is_logged_in():
+        return redirect(url_for("login"))
+
+    amministratori = User.query.all()  # Prendi la lista degli amministratori
+    return render_template("dashboard.html", amministratori=amministratori)
+
 
 # ** Visualizzazione utenti del servizio Streamland **
 @app.route("/index")
