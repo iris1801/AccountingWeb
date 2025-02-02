@@ -1,12 +1,8 @@
 {% extends 'base.html' %}
 
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <title>Gestione Utenti</title>
-</head>
-<body>
+{% block title %}Lista Utenti{% endblock %}
+
+{% block content %}
     <h1>Lista Utenti</h1>
     <a href="{{ url_for('add_utente') }}">Aggiungi Nuovo Utente</a>
     <ul>
@@ -20,5 +16,4 @@
             </li>
         {% endfor %}
     </ul>
-</body>
-</html>
+{% endblock %}
