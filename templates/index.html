@@ -5,35 +5,38 @@
 {% block content %}
     <h1>Lista Utenti</h1>
 
-    <a href="{{ url_for('dashboard') }}" class="button yellow">Vai alla Dashboard</a>
-    <a href="{{ url_for('add_utente') }}" class="button yellow">Aggiungi Nuovo Utente</a>
+    <div class="dashboard-container">
+        <div class="buttons">
+            <a href="{{ url_for('dashboard') }}" class="button yellow">Vai alla Dashboard</a>
+            <a href="{{ url_for('add_utente') }}" class="button yellow">Aggiungi Nuovo Utente</a>
+        </div>
 
-    <!-- Tabella per la lista utenti -->
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nome</th>
-                <th>Email</th>
-                <th>Piano</th>
-                <th>Stato</th>
-                <th>Azioni</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for utente in utenti %}
+        <table>
+            <thead>
                 <tr>
-                    <td>{{ utente.id }}</td>
-                    <td>{{ utente.nome }} {{ utente.cognome }}</td>
-                    <td>{{ utente.email if utente.email else "Nessuna Email" }}</td>
-                    <td>{{ utente.piano }}</td>
-                    <td>{{ utente.stato }}</td>
-                    <td>
-                        <a href="{{ url_for('edit_utente', id=utente.id) }}" class="button yellow">Modifica</a>
-                        <a href="{{ url_for('delete_utente', id=utente.id) }}" class="button yellow" onclick="return confirm('Eliminare questo utente?');">Elimina</a>
-                    </td>
+                    <th>Nome</th>
+                    <th>Cognome</th>
+                    <th>Email</th>
+                    <th>Piano</th>
+                    <th>Stato</th>
+                    <th>Azioni</th>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for utente in utenti %}
+                    <tr>
+                        <td>{{ utente.nome }}</td>
+                        <td>{{ utente.cognome }}</td>
+                        <td>{{ utente.email if utente.email else "Nessuna Email" }}</td>
+                        <td>{{ utente.piano }}</td>
+                        <td>{{ utente.stato }}</td>
+                        <td>
+                            <a href="{{ url_for('edit_utente', id=utente.id) }}" class="button yellow">Modifica</a>
+                            <a href="{{ url_for('delete_utente', id=utente.id) }}" class="button yellow" onclick="return confirm('Eliminare questo utente?');">Elimina</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 {% endblock %}
