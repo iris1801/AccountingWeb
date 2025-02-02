@@ -1,25 +1,19 @@
 from flask import Flask, render_template, redirect, url_for, request, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from forms import LoginForm  # Importa il form
-from flask_session import Session
-
-app = Flask(__name__)
-app.config["SESSION_TYPE"] = "filesystem"
-app.config["SESSION_PERMANENT"] = False  # Evita che la sessione venga distrutta subito
-app.config["SESSION_USE_SIGNER"] = True  # Protegge i cookie della sessione
-app.config["SESSION_FILE_DIR"] = "./flask_session"  # Cartella per le sessioni
+from flask_session import Session                              from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user                        from forms import LoginForm, RegisterForm  # Aggiungi l'import per i form
+                                                               # Configura l'app                                              app = Flask(__name__)
+app.config["SESSION_TYPE"] = "filesystem"                      app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_USE_SIGNER"] = True                        app.config["SESSION_FILE_DIR"] = "./flask_session"  # Cartella per le sessioni
 Session(app)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['SECRET_KEY'] = 'chiave_segreta'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'app.config['SECRET_KEY'] = 'chiave_segreta'
 db = SQLAlchemy(app)
-
-# Modello per utenti dell'app (admin)
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
+                                                               # Configura LoginManager
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"  # Definisce la vista di login                                                             
+# Modello per utenti amministratori (UserMixin permette l'integrazione con Flask-Login)
+class User(UserMixin, db.Model):                                   id = db.Column(db.Integer, primary_key=True)                   username = db.Column(db.String(50), unique=True, nullable=False)                                                              password_hash = db.Column(db.String(255), nullable=False)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -36,6 +30,14 @@ class Utente(db.Model):
     piano = db.Column(db.String(50), nullable=False)
     stato = db.Column(db.String(50), nullable=False)
 
+# Carica l'utente
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# Variabile per la modalità del primo utente
+first_user_mode = None  # Rimuovere la dichiarazione dentro la route, deve essere globale
+
 with app.app_context():
     db.create_all()
     if not User.query.first():
@@ -50,10 +52,42 @@ def home():
         return redirect(url_for("register_first_user"))
     return redirect(url_for("index"))
 
+# ** Registrazione Nuovo Amministratore (Accessibile dalla Dashboard) **
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if not is_logged_in():
+        return redirect(url_for("login"))
+
+    form = RegisterForm()  # Usa il form di registrazione
+
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        confirm_password = request.form["confirm_password"]
+
+        # Controlla se la password e la conferma della password sono uguali
+        if password != confirm_password:
+            return "Le password non corrispondono"
+
+        # Verifica se l'utente già esiste
+        if User.query.filter_by(username=username).first():
+            return "Nome utente già esistente"
+
+        # Crea il nuovo amministratore
+        new_user = User(username=username)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+
+        return redirect(url_for("dashboard"))
+
+    return render_template("register.html", form=form)
+
 # ** Registrazione del primo utente **
 @app.route("/register_first_user", methods=["GET", "POST"])
 def register_first_user():
-    global first_user_mode
+    global first_user_mode  # Usa la variabile globale
+
     if not first_user_mode:
         return redirect(url_for("login"))
 
@@ -66,7 +100,7 @@ def register_first_user():
         db.session.add(new_user)
         db.session.commit()
 
-        first_user_mode = False
+        first_user_mode = False  # Cambia lo stato della variabile
         return redirect(url_for("login"))
 
     return render_template("register_first_user.html")
@@ -82,74 +116,41 @@ def login():
         user = User.query.filter_by(username=username).first()
 
         if user and user.check_password(password):
-            session["user"] = user.username
-            session.permanent = True  # Mantiene la sessione attiva
-            print("Login effettuato con successo, session:", session)
+            login_user(user)  # Login dell'utente
             return redirect(url_for("index"))
         else:
-            print("Errore login: utente non trovato o password errata.")
+            return "Errore login: utente non trovato o password errata."
 
-    print("Sessione attuale:", session)
     return render_template("login.html", form=form)
 
 # ** Logout **
 @app.route("/logout")
 def logout():
-    session.pop("user", None)
+    logout_user()  # Logout dell'utente
     return redirect(url_for("login"))
 
 # ** Controllo autenticazione **
 def is_logged_in():
-    print("Contenuto sessione in is_logged_in():", session)
-    return session.get("user") is not None
-
-# Altra route per dashboard
-@app.route("/edit_profile", methods=["GET", "POST"])
-def edit_profile():
-    if not is_logged_in():
-        return redirect(url_for("login"))
-
-    user = User.query.filter_by(username=session.get("user")).first()
-    if not user:
-        return redirect(url_for("dashboard"))
-
-    if request.method == "POST":
-        new_username = request.form["username"]
-        new_password = request.form["password"]
-
-        user.username = new_username
-        if new_password:  # Se è stata inserita una nuova password, aggiornarla
-            user.set_password(new_password)
-
-        db.session.commit()
-        return redirect(url_for("dashboard"))
-
-    return render_template("edit_profile.html", user=user)
+    return current_user.is_authenticated
 
 # Route per dashboard
 @app.route("/dashboard")
+@login_required  # Aggiungi il decoratore per proteggere la dashboard
 def dashboard():
-    if not is_logged_in():
-        return redirect(url_for("login"))
-
     amministratori = User.query.all()  # Prendi la lista degli amministratori
     return render_template("dashboard.html", amministratori=amministratori)
 
 # ** Visualizzazione utenti del servizio Streamland **
 @app.route("/index")
+@login_required
 def index():
-    if not is_logged_in():
-        return redirect(url_for("login"))
-
     utenti = Utente.query.all()
     return render_template("index.html", utenti=utenti)
 
 # ** Aggiunta nuovo utente al servizio Streamland **
 @app.route("/add_utente", methods=["GET", "POST"])
+@login_required
 def add_utente():
-    if not is_logged_in():
-        return redirect(url_for("login"))
-
     if request.method == "POST":
         nome = request.form["nome"]
         cognome = request.form["cognome"]
@@ -167,10 +168,8 @@ def add_utente():
 
 # ** Modifica utente **
 @app.route("/edit_utente/<int:id>", methods=["GET", "POST"])
+@login_required
 def edit_utente(id):
-    if not is_logged_in():
-        return redirect(url_for("login"))
-
     utente = Utente.query.get_or_404(id)
 
     if request.method == "POST":
@@ -185,12 +184,25 @@ def edit_utente(id):
 
     return render_template("edit_utente.html", utente=utente)
 
+# ** Modifica Profilo Amministratore **
+@app.route("/edit_profile/<int:id>", methods=["GET", "POST"])
+@login_required
+def edit_profile(id):
+    amministratore = User.query.get_or_404(id)
+
+    if request.method == "POST":
+        amministratore.username = request.form["username"]
+        amministratore.password_hash = generate_password_hash(request.form["password"])
+
+        db.session.commit()
+        return redirect(url_for("dashboard"))
+
+    return render_template("edit_profile.html", amministratore=amministratore)
+
 # ** Eliminazione utente **
 @app.route("/delete_utente/<int:id>")
+@login_required
 def delete_utente(id):
-    if not is_logged_in():
-        return redirect(url_for("login"))
-
     utente = Utente.query.get_or_404(id)
     db.session.delete(utente)
     db.session.commit()
