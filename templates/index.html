@@ -7,14 +7,33 @@
 
     <a href="{{ url_for('dashboard') }}" class="button yellow">Vai alla Dashboard</a>
     <a href="{{ url_for('add_utente') }}" class="button yellow">Aggiungi Nuovo Utente</a>
-                                                                   <ul>
-        {% for utente in utenti %}
-            <li>
-                {{ utente.nome }} {{ utente.cognome }} -
-                {{ utente.email if utente.email else "Nessuna Email" }} -
-                Piano: {{ utente.piano }} - Stato: {{ utente.stato }}
-                <a href="{{ url_for('edit_utente', id=utente.id) }}" class="button yellow">Modifica</a>
-                <a href="{{ url_for('delete_utente', id=utente.id) }}" class="button yellow" onclick="return confirm('Eliminare questo utente?');">Elimina</a>
-            </li>
-        {% endfor %}                                               </ul>
+
+    <!-- Tabella per la lista utenti -->
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Piano</th>
+                <th>Stato</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for utente in utenti %}
+                <tr>
+                    <td>{{ utente.id }}</td>
+                    <td>{{ utente.nome }} {{ utente.cognome }}</td>
+                    <td>{{ utente.email if utente.email else "Nessuna Email" }}</td>
+                    <td>{{ utente.piano }}</td>
+                    <td>{{ utente.stato }}</td>
+                    <td>
+                        <a href="{{ url_for('edit_utente', id=utente.id) }}" class="button yellow">Modifica</a>
+                        <a href="{{ url_for('delete_utente', id=utente.id) }}" class="button yellow" onclick="return confirm('Eliminare questo utente?');">Elimina</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 {% endblock %}
