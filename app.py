@@ -48,7 +48,11 @@ class Utente(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=True)
     piano = db.Column(db.String(50), nullable=False)
     stato = db.Column(db.String(50), nullable=False)
+    data_registrazione = db.Column(db.DateTime, default=datetime.utcnow)  # Nuovo campo
+    data_scadenza = db.Column(db.DateTime, nullable=True)  # Nuovo campo, opzionale
 
+    def __repr__(self):
+        return f"<Utente {self.nome} {self.cognome}>"
 
 # Carica l'utente
 @login_manager.user_loader
