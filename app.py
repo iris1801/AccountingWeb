@@ -1,13 +1,32 @@
-from flask import Flask, render_template, redirect, url_for, request, session                                                 from flask_sqlalchemy import SQLAlchemy                        from werkzeug.security import generate_password_hash, check_password_hash                                                     from forms import LoginForm  # Importa il form
-from flask_session import Session                              
-app = Flask(__name__)                                          app.config["SESSION_TYPE"] = "filesystem"                      app.config["SESSION_PERMANENT"] = False  # Evita che la sessione venga distrutta subito                                       app.config["SESSION_USE_SIGNER"] = True  # Protegge i cookie della sessione                                                   app.config["SESSION_FILE_DIR"] = "./flask_session"  # Cartella per le sessioni                                                Session(app)
-                                                               app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'app.config['SECRET_KEY'] = 'chiave_segreta'
-db = SQLAlchemy(app)                                           
-# Modello per utenti dell'app (admin)                          class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)                   username = db.Column(db.String(50), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)  
-    def set_password(self, password):                                  self.password_hash = generate_password_hash(password)  
-    def check_password(self, password):                                return check_password_hash(self.password_hash, password)                                                              
+from flask import Flask, render_template, redirect, url_for, request, session
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+from forms import LoginForm  # Importa il form
+from flask_session import Session
+
+app = Flask(__name__)
+app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_PERMANENT"] = False  # Evita che la sessione venga distrutta subito
+app.config["SESSION_USE_SIGNER"] = True  # Protegge i cookie della sessione
+app.config["SESSION_FILE_DIR"] = "./flask_session"  # Cartella per le sessioni
+Session(app)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SECRET_KEY'] = 'chiave_segreta'
+db = SQLAlchemy(app)
+
+# Modello per utenti dell'app (admin)
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
 # Modello per utenti del servizio Streamland
 class Utente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -51,26 +70,6 @@ def register_first_user():
         return redirect(url_for("login"))
 
     return render_template("register_first_user.html")
-
-
-# ** Registrazione altri utenti **
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    global first_user_mode
-    if not first_user_mode:
-        return redirect(url_for("login"))
-
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-
-        new_user = User(username=username)
-        new_user.set_password(password)  # Salva la password i>
-        db.session.add(new_user)
-        db.session.commit()
-
-    return render_template("register.html")
-
 
 # ** Login degli amministratori **
 @app.route("/login", methods=["GET", "POST"])
